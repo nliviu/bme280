@@ -190,7 +190,7 @@ int8_t mgos_bme280_read_humidity(struct mgos_bme280* bme, double* humid)
         return BME280_OK;
     }
     struct bme280_data comp_data;
-    int8_t rslt = bme280_get_sensor_data(BME280_PRESS, &comp_data, &bme->dev);
+    int8_t rslt = bme280_get_sensor_data(BME280_HUM, &comp_data, &bme->dev);
     if (BME280_OK == rslt) {
 #ifdef BME280_FLOAT_ENABLE
         *humid = comp_data.humidity;
