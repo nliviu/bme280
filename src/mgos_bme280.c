@@ -195,7 +195,7 @@ int8_t mgos_bme280_read_humidity(struct mgos_bme280* bme, double* humid)
 #ifdef BME280_FLOAT_ENABLE
         *humid = comp_data.humidity;
 #else
-        *humid = comp_data.humidity / 100.0;
+        *humid = comp_data.humidity / 1000.0;
 #endif
     }
     return rslt;
