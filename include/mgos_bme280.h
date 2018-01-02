@@ -33,8 +33,28 @@ void mgos_bme280_delete(struct mgos_bme280* bme);
 /*
  * Reads the temperature, pressure and humidity in the provided `data` structure.
  * If the device is BMP280, the humidity will be 0.
+ * Returns 0 if success
  */
 int8_t mgos_bme280_read(struct mgos_bme280* bme, struct mgos_bme280_data* data);
+
+/*
+ * Reads the temperature in the provided `temp` pointer to double.
+ * Returns 0 if success
+ */
+int8_t mgos_bme280_read_temperature(struct mgos_bme280* bme, double* temp);
+
+/*
+ * Reads the pressure in the provided `press` pointer to double.
+ * Returns 0 if success
+ */
+int8_t mgos_bme280_read_pressure(struct mgos_bme280* bme, double* press);
+
+/*
+ * Reads the humidity in the provided `humid` pointer to double.
+ * If the device is BMP280, the humidity will be 0.
+ * Returns 0 if success
+ */
+int8_t mgos_bme280_read_humidity(struct mgos_bme280* bme, double* humid);
 
 /*
  * Returns true if a BME280 device is connected

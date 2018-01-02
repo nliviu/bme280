@@ -141,15 +141,61 @@ int8_t mgos_bme280_read(struct mgos_bme280* bme, struct mgos_bme280_data* data)
     struct bme280_data comp_data;
     int8_t rslt = bme280_get_sensor_data(BME280_ALL, &comp_data, &bme->dev);
     if (BME280_OK == rslt) {
-#ifdef BME280_64BIT_ENABLE
-        data->temp = comp_data.temperature / 100.0;
-        data->press = comp_data.pressure / 100.0;
-        data->humid = comp_data.humidity / 1000.0;
-#endif
 #ifdef BME280_FLOAT_ENABLE
         data->temp = comp_data.temperature;
         data->press = comp_data.pressure;
         data->humid = comp_data.humidity;
+#else
+        data->temp = comp_data.temperature / 100.0;
+        data->press = comp_data.pressure / 100.0;
+        data->humid = comp_data.humidity / 1000.0;
+#endif
+    }
+    return rslt;
+}
+
+int8_t mgos_bme280_read_temperature(struct mgos_bme280* bme, double* temp)
+{
+    struct bme280_data comp_data;
+    int8_t rslt = bme280_get_sensor_data(BME280_TEMP, &comp_data, &bme->dev);
+    if (BME280_OK == rslt) {
+#ifdef BME280_FLOAT_ENABLE
+        *temp = comp_data.temperature;
+#else
+        *temp = comp_data.temperature / 100.0;
+#endif
+    }
+    return rslt;
+}
+
+int8_t mgos_bme280_read_pressure(struct mgos_bme280* bme, double* press)
+{
+    struct bme280_data comp_data;
+    int8_t rslt = bme280_get_sensor_data(BME280_PRESS, &comp_data, &bme->dev);
+    if (BME280_OK == rslt) {
+#ifdef BME280_FLOAT_ENABLE
+        *press = comp_data.pressure;
+#else
+        *press = comp_data.pressure / 100.0;
+#endif
+    }
+    return rslt;
+}
+
+int8_t mgos_bme280_read_humidity(struct mgos_bme280* bme, double* humid)
+{
+    /* Check if the device is BMP280*/
+    if (BME280_CHIP_ID != bme->dev.chip_id) {
+        *humid = 0.0;
+        return BME280_OK;
+    }
+    struct bme280_data comp_data;
+    int8_t rslt = bme280_get_sensor_data(BME280_PRESS, &comp_data, &bme->dev);
+    if (BME280_OK == rslt) {
+#ifdef BME280_FLOAT_ENABLE
+        *humid = comp_data.humidity;
+#else
+        *humid = comp_data.humidity / 100.0;
 #endif
     }
     return rslt;
