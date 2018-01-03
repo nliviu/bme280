@@ -34,7 +34,7 @@ public:
      * Reads the temperature in the provided `temp` reference to double.
      * Returns 0 if success
      */
-    int8_t readTemperature(struct mgos_bme280* bme, double& temp)
+    int8_t readTemperature(double& temp)
     {
         return mgos_bme280_read_temperature(_bme, &temp);
     }
@@ -43,7 +43,7 @@ public:
      * Reads the pressure in the provided `press` reference to double.
      * Returns 0 if success
      */
-    int8_t readPressure(struct mgos_bme280* bme, double& press)
+    int8_t readPressure(double& press)
     {
         return mgos_bme280_read_pressure(_bme, &press);
     }
@@ -53,7 +53,7 @@ public:
      * If the device is BMP280, the humidity will be 0.
      * Returns 0 if success
      */
-    int8_t readHumidity(struct mgos_bme280* bme, double& humid)
+    int8_t readHumidity(double& humid)
     {
         return mgos_bme280_read_humidity(_bme, &humid);
     }
