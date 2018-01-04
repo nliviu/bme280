@@ -19,11 +19,34 @@ struct mgos_bme280_data
     double humid;
 };
 
+static const double MGOS_BME280_ERROR = -128.0;
+
 /*
- * Creates a `struct mgos_bme280` for the device with `addr` address
+ * Creates a `struct mgos_bme280` for the device with I2C `addr` address
+ * Uses global i2c. If different pins than the default ones are used,
+ * the user should define them in mos.yml. Eg.
+ * ```
+ *  - ["i2c.sda_gpio", 12]
+ *  - ["i2c.scl_gpio", 14]
+ * ```
  * Returns opaque handle (NULL if an error occurred)
  */
 struct mgos_bme280* mgos_bme280_i2c_create(uint8_t addr);
+
+/*
+ * Creates a `struct mgos_bme280` for the device
+ * Uses global spi with `spi.cs0_gpio`
+ * If different pins than the default ones are used,
+ * the user should define them in mos.yml. Eg.
+ * ```
+ *  - ["spi.miso_gpio", 19]
+ *  - ["spi.mosi_gpio", 23]
+ *  - ["spi.sclk_gpio", 18]
+ *  - ["spi.cs0_gpio", 5]
+ * ```
+ * Returns opaque handle (NULL if an error occurred)
+ */
+struct mgos_bme280* mgos_bme280_spi_create();
 
 /*
  * Deletes the handle and frees resources.
@@ -38,23 +61,23 @@ void mgos_bme280_delete(struct mgos_bme280* bme);
 int8_t mgos_bme280_read(struct mgos_bme280* bme, struct mgos_bme280_data* data);
 
 /*
- * Reads the temperature in the provided `temp` pointer to double.
- * Returns 0 if success
+ * Reads the temperature.
+ * Returns MGOS_BME280_ERROR if error.
  */
-int8_t mgos_bme280_read_temperature(struct mgos_bme280* bme, double* temp);
+double mgos_bme280_read_temperature(struct mgos_bme280* bme);
 
 /*
- * Reads the pressure in the provided `press` pointer to double.
- * Returns 0 if success
+ * Reads the pressure.
+ * Returns MGOS_BME280_ERROR if error.
  */
-int8_t mgos_bme280_read_pressure(struct mgos_bme280* bme, double* press);
+double mgos_bme280_read_pressure(struct mgos_bme280* bme);
 
 /*
- * Reads the humidity in the provided `humid` pointer to double.
+ * Reads the humidity.
  * If the device is BMP280, the humidity will be 0.
- * Returns 0 if success
+ * Returns MGOS_BME280_ERROR if error.
  */
-int8_t mgos_bme280_read_humidity(struct mgos_bme280* bme, double* humid);
+double mgos_bme280_read_humidity(struct mgos_bme280* bme);
 
 /*
  * Returns true if a BME280 device is connected

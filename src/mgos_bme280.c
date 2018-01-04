@@ -1,6 +1,7 @@
 #include <mgos.h>
 
 #include <mgos_i2c.h>
+#include <mgos_spi.h>
 
 #include "mgos_bme280.h"
 
@@ -68,6 +69,112 @@ static int8_t user_i2c_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data
     return ok ? 0 : -2;
 }
 
+static int8_t user_spi_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint16_t len)
+{
+    /*
+     * The parameter dev_id can be used as a variable to select which Chip Select pin has
+     * to be set low to activate the relevant device on the SPI bus
+     */
+
+    /*
+     * Data on the bus should be like
+     * |----------------+---------------------+-------------|
+     * | MOSI           | MISO                | Chip Select |
+     * |----------------+---------------------|-------------|
+     * | (don't care)   | (don't care)        | HIGH        |
+     * | (reg_addr)     | (don't care)        | LOW         |
+     * | (don't care)   | (reg_data[0])       | LOW         |
+     * | (....)         | (....)              | LOW         |
+     * | (don't care)   | (reg_data[len - 1]) | LOW         |
+     * | (don't care)   | (don't care)        | HIGH        |
+     * |----------------+---------------------|-------------|
+     */
+    //int8_t rslt = 0; /* Return 0 for Success, non-zero for failure */
+    (void) dev_id; /* Not used. Using default spi.cs0_gpio */
+
+    struct mgos_spi* spi = mgos_spi_get_global();
+    if (NULL == spi) {
+        LOG(LL_INFO, ("Could not get SPI global instance"));
+        return -1;
+    }
+
+    struct mgos_spi_txn txn;
+    memset(&txn, 0, sizeof (txn));
+    txn.cs = 0; /* Using default spi.cs0_gpio */
+    txn.mode = 0; /* Mode 0 or 3*/
+    txn.freq = 1000000;
+    txn.hd.tx_data = &reg_addr;
+    txn.hd.tx_len = 1;
+    txn.hd.rx_data = reg_data;
+    txn.hd.rx_len = len;
+
+    if (!mgos_spi_run_txn(spi, false, &txn)) {
+        LOG(LL_INFO, ("SPI transaction failed"));
+        return -1;
+    }
+
+    return BME280_OK;
+}
+
+static int8_t user_spi_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint16_t len)
+{
+    /*
+     * The parameter dev_id can be used as a variable to select which Chip Select pin has
+     * to be set low to activate the relevant device on the SPI bus
+     */
+
+    /*
+     * Data on the bus should be like
+     * |---------------------+--------------+-------------|
+     * | MOSI                | MISO         | Chip Select |
+     * |---------------------+--------------|-------------|
+     * | (don't care)        | (don't care) | HIGH        |
+     * | (reg_addr)          | (don't care) | LOW         |
+     * | (reg_data[0])       | (don't care) | LOW         |
+     * | (....)              | (....)       | LOW         |
+     * | (reg_data[len - 1]) | (don't care) | LOW         |
+     * | (don't care)        | (don't care) | HIGH        |
+     * |---------------------+--------------|-------------|
+     */
+    //int8_t rslt = 0; /* Return 0 for Success, non-zero for failure */
+
+    (void) dev_id; /* Not used. Using default spi.cs0_gpio */
+
+    struct mgos_spi* spi = mgos_spi_get_global();
+    if (NULL == spi) {
+        LOG(LL_INFO, ("user_spi_write: Could not get SPI global instance"));
+        return -1;
+    }
+
+    struct mgos_spi_txn txn;
+    memset(&txn, 0, sizeof (txn));
+    txn.cs = 0; /* Using default spi.cs0_gpio */
+    txn.mode = 0; /* Mode 0 or 3*/
+    txn.freq = 1000000;
+
+    /* send reg_addr and reg_data[0] */
+    uint8_t tx_data[2];
+    tx_data[0] = reg_addr;
+    tx_data[1] = reg_data[0];
+    txn.hd.tx_data = tx_data;
+    txn.hd.tx_len = 2;
+
+    if (!mgos_spi_run_txn(spi, false, &txn)) {
+        LOG(LL_INFO, ("user_spi_write: SPI transaction failed"));
+        return -1;
+    }
+
+    /* send the rest of data */
+    txn.hd.tx_data = reg_data + 1;
+    txn.hd.tx_len = len - 1;
+
+    if (!mgos_spi_run_txn(spi, false, &txn)) {
+        LOG(LL_INFO, ("user_spi_write: SPI transaction failed"));
+        return -1;
+    }
+    return BME280_OK;
+}
+
 struct mgos_bme280 {
     struct bme280_dev dev;
 };
@@ -76,7 +183,7 @@ static int8_t commonInit(struct mgos_bme280* bme)
 {
     int8_t rslt = bme280_init(&bme->dev);
     if (BME280_OK != rslt) {
-        LOG(LL_INFO, ("BMP/BME280 device not found"));
+        LOG(LL_INFO, ("BMP/BME280 device not found - %hhd", rslt));
         return rslt;
     }
 
@@ -136,6 +243,36 @@ struct mgos_bme280* mgos_bme280_i2c_create(uint8_t addr)
     return bme;
 }
 
+struct mgos_bme280* mgos_bme280_spi_create()
+{
+    // Is I2C enabled?
+    if (!mgos_sys_config_get_spi_enable()) {
+        LOG(LL_INFO, ("SPI is disabled."));
+        return NULL;
+    }
+
+    struct mgos_bme280* bme = calloc(1, sizeof (struct mgos_bme280));
+    if (NULL == bme) {
+        LOG(LL_INFO, ("Could not allocate mgos_bme280 structure."));
+        return NULL;
+    }
+
+    //initialize the structure
+    bme->dev.dev_id = 0;
+    bme->dev.intf = BME280_SPI_INTF;
+    bme->dev.read = user_spi_read;
+    bme->dev.write = user_spi_write;
+    bme->dev.delay_ms = mgos_msleep;
+
+    int8_t rslt = commonInit(bme);
+    if (BME280_OK != rslt) {
+        free(bme);
+        return NULL;
+    }
+
+    return bme;
+}
+
 int8_t mgos_bme280_read(struct mgos_bme280* bme, struct mgos_bme280_data* data)
 {
     struct bme280_data comp_data;
@@ -154,51 +291,53 @@ int8_t mgos_bme280_read(struct mgos_bme280* bme, struct mgos_bme280_data* data)
     return rslt;
 }
 
-int8_t mgos_bme280_read_temperature(struct mgos_bme280* bme, double* temp)
+double mgos_bme280_read_temperature(struct mgos_bme280* bme)
 {
     struct bme280_data comp_data;
     int8_t rslt = bme280_get_sensor_data(BME280_TEMP, &comp_data, &bme->dev);
     if (BME280_OK == rslt) {
 #ifdef BME280_FLOAT_ENABLE
-        *temp = comp_data.temperature;
 #else
-        *temp = comp_data.temperature / 100.0;
+        comp_data.temperature /= 100.0;
 #endif
+    } else {
+        comp_data.temperature = MGOS_BME280_ERROR;
     }
-    return rslt;
+    return comp_data.temperature;
 }
 
-int8_t mgos_bme280_read_pressure(struct mgos_bme280* bme, double* press)
+double mgos_bme280_read_pressure(struct mgos_bme280* bme)
 {
     struct bme280_data comp_data;
     int8_t rslt = bme280_get_sensor_data(BME280_PRESS, &comp_data, &bme->dev);
     if (BME280_OK == rslt) {
 #ifdef BME280_FLOAT_ENABLE
-        *press = comp_data.pressure;
 #else
-        *press = comp_data.pressure / 100.0;
+        comp_data.pressure /= 100.0;
 #endif
+    } else {
+        comp_data.pressure = MGOS_BME280_ERROR;
     }
-    return rslt;
+    return comp_data.pressure;
 }
 
-int8_t mgos_bme280_read_humidity(struct mgos_bme280* bme, double* humid)
+double mgos_bme280_read_humidity(struct mgos_bme280* bme)
 {
     /* Check if the device is BMP280*/
     if (BME280_CHIP_ID != bme->dev.chip_id) {
-        *humid = 0.0;
-        return BME280_OK;
+        return 0.0;
     }
     struct bme280_data comp_data;
     int8_t rslt = bme280_get_sensor_data(BME280_HUM, &comp_data, &bme->dev);
     if (BME280_OK == rslt) {
 #ifdef BME280_FLOAT_ENABLE
-        *humid = comp_data.humidity;
 #else
-        *humid = comp_data.humidity / 1000.0;
+        comp_data.humidity /= 1000.0;
 #endif
+    } else {
+        comp_data.humidity = MGOS_BME280_ERROR;
     }
-    return rslt;
+    return comp_data.humidity;
 }
 
 void mgos_bme280_delete(struct mgos_bme280* bme)

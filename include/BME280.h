@@ -8,8 +8,8 @@ public:
     /*
      * Creates the BME280 object for the device with `addr` address
      */
-    BME280(uint8_t addr)
-    : _bme(mgos_bme280_i2c_create(addr))
+    BME280(uint8_t addr, bool spi = false)
+    : _bme(spi ? mgos_bme280_spi_create() : mgos_bme280_i2c_create(addr))
     {
     }
 
@@ -30,32 +30,32 @@ public:
         return mgos_bme280_read(_bme, &data);
     }
 
-    /*
-     * Reads the temperature in the provided `temp` reference to double.
-     * Returns 0 if success
+        /*
+     * Reads the temperature.
+     * Returns MGOS_BME280_ERROR if error.
      */
-    int8_t readTemperature(double& temp)
+    double readTemperature()
     {
-        return mgos_bme280_read_temperature(_bme, &temp);
+        return mgos_bme280_read_temperature(_bme);
     }
 
     /*
-     * Reads the pressure in the provided `press` reference to double.
-     * Returns 0 if success
+     * Reads the pressure.
+     * Returns MGOS_BME280_ERROR if error.
      */
-    int8_t readPressure(double& press)
+    double readPressure()
     {
-        return mgos_bme280_read_pressure(_bme, &press);
+        return mgos_bme280_read_pressure(_bme);
     }
 
     /*
-     * Reads the humidity in the provided `humid` reference to double.
+     * Reads the humidity.
      * If the device is BMP280, the humidity will be 0.
-     * Returns 0 if success
+     * Returns MGOS_BME280_ERROR if error.
      */
-    int8_t readHumidity(double& humid)
+    double readHumidity()
     {
-        return mgos_bme280_read_humidity(_bme, &humid);
+        return mgos_bme280_read_humidity(_bme);
     }
 
     /*
