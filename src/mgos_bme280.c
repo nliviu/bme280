@@ -196,7 +196,9 @@ static int8_t commonInit(struct mgos_bme280* bme)
 
     uint8_t settings_sel = BME280_OSR_PRESS_SEL;
     settings_sel |= BME280_OSR_TEMP_SEL;
-    settings_sel |= BME280_OSR_HUM_SEL;
+    if(BME280_CHIP_ID == bme->dev.chip_id) {
+        settings_sel |= BME280_OSR_HUM_SEL;
+    }
     settings_sel |= BME280_STANDBY_SEL;
     settings_sel |= BME280_FILTER_SEL;
     rslt = bme280_set_sensor_settings(settings_sel, &bme->dev);
