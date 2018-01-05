@@ -275,8 +275,13 @@ struct mgos_bme280* mgos_bme280_spi_create()
 
 int8_t mgos_bme280_read(struct mgos_bme280* bme, struct mgos_bme280_data* data)
 {
+    if(NULL == bme) {
+        return -1;
+    }
+    /* Don't try to read humidity if BMP280 */
+    uint8_t sensor_comp = (BME280_CHIP_ID == bme->dev.chip_id) ? BME280_ALL : (BME280_PRESS | BME280_TEMP);
     struct bme280_data comp_data;
-    int8_t rslt = bme280_get_sensor_data(BME280_ALL, &comp_data, &bme->dev);
+    int8_t rslt = bme280_get_sensor_data(sensor_comp, &comp_data, &bme->dev);
     if (BME280_OK == rslt) {
 #ifdef BME280_FLOAT_ENABLE
         data->temp = comp_data.temperature;
