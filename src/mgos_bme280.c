@@ -152,26 +152,20 @@ static int8_t user_spi_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data
     txn.mode = 0; /* Mode 0 or 3*/
     txn.freq = 1000000;
 
-    /* send reg_addr and reg_data[0] */
-    uint8_t tx_data[2];
-    tx_data[0] = reg_addr;
-    tx_data[1] = reg_data[0];
-    txn.hd.tx_data = tx_data;
-    txn.hd.tx_len = 2;
+    uint8_t temp_buff[20]; /* Typically not to write more than 10 registers */
+    temp_buff[0] = reg_addr;
+    temp_buff[1] = reg_data[0];
+    if (len >= 2) {
+        memcpy(temp_buff + 2, reg_data + 1, len - 1);
+    }
+    txn.hd.tx_data = temp_buff;
+    txn.hd.tx_len = len;
 
     if (!mgos_spi_run_txn(spi, false, &txn)) {
         LOG(LL_INFO, ("user_spi_write: SPI transaction failed"));
         return -1;
     }
 
-    /* send the rest of data */
-    txn.hd.tx_data = reg_data + 1;
-    txn.hd.tx_len = len - 1;
-
-    if (!mgos_spi_run_txn(spi, false, &txn)) {
-        LOG(LL_INFO, ("user_spi_write: SPI transaction failed"));
-        return -1;
-    }
     return BME280_OK;
 }
 
@@ -196,7 +190,7 @@ static int8_t commonInit(struct mgos_bme280* bme)
 
     uint8_t settings_sel = BME280_OSR_PRESS_SEL;
     settings_sel |= BME280_OSR_TEMP_SEL;
-    if(BME280_CHIP_ID == bme->dev.chip_id) {
+    if (BME280_CHIP_ID == bme->dev.chip_id) {
         settings_sel |= BME280_OSR_HUM_SEL;
     }
     settings_sel |= BME280_STANDBY_SEL;
@@ -277,7 +271,7 @@ struct mgos_bme280* mgos_bme280_spi_create()
 
 int8_t mgos_bme280_read(struct mgos_bme280* bme, struct mgos_bme280_data* data)
 {
-    if(NULL == bme) {
+    if (NULL == bme) {
         return -1;
     }
     /* Don't try to read humidity if BMP280 */
