@@ -10,9 +10,6 @@ sources:
   - src
   - src/BME280_driver
   
-filesystem:
-  - fs
-  
 config_schema:
 #I2C
  - ["i2c.enable", true]
