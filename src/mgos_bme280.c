@@ -7,6 +7,8 @@
 
 #include "BME280_driver/bme280.h"
 
+const double MGOS_BME280_ERROR = -128.0;
+
 static int8_t user_i2c_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint16_t len)
 {
     /*

@@ -19,7 +19,7 @@ struct mgos_bme280_data
     double humid;
 };
 
-static const double MGOS_BME280_ERROR = -128.0;
+extern const double MGOS_BME280_ERROR;
 
 /*
  * Creates a `struct mgos_bme280` for the device with I2C `addr` address
